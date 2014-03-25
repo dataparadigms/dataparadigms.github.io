@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <title>pope tracker - DataParadigms - data data data!</title>
+        <meta charset="utf-8" />
+        <link href="//netdna.bootstrapcdn.com/bootstrap/3.0.0/css/bootstrap.min.css" rel="stylesheet" />
+        <link href="../../../../theme/static/css/style.css" rel="stylesheet" />
+        <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+    </head>
+
+    <body id="index" class="archive">
+        <div class="container">
+            <div class="header">
+                <ul class="nav nav-pills pull-right">
+                    <li class=""><a href="../../../..">Home</a></li>
+                    <li><a href="../../../../pages/about-me.html">About Me</a></li>
+                    <!-- <li><a href="../../../../archives.html">Archives</a></li> -->
+                </ul>
+                <h3 class="text-muted"><a href="../../../..">DataParadigms - data data data!</a></h3>
+             </div>
+<section id="content" class="article content">
+  <header>
+    <h2 class="entry-title">
+      <a href="../../../../posts/2013/02/pope-tracker/" rel="bookmark"
+         title="Permalink to pope tracker">pope tracker</a></h2>
+ 
+  </header>
+  
+     
+  <div class="entry-content">
+    <p>Despite not being Catholic,  the papal election fascinates me.  Not sure if it's the old rituals, the world-wide interest, or simply the fact that the Catholic Church has left a huge mark on history. </p>
+<p>There's no way I know enough about the inner workings of the Catholic Church to have any idea on who the next Pope may be.  </p>
+<p>Since domain knowledge is out, the next best option?  </p>
+<p><strong>Follow the money!</strong></p>
+<p>Last week, I set up a scrapper to update the odds hourly from a prominent bookmaker.  Given that I had a weeks worth of data, it was time to fire up <a href="http://ipython.org/ipython-doc/dev/interactive/htmlnotebook.html">iPython</a> and see the action. </p>
+<p><img alt="Alt text" src="/images/popeProbability_fig_00.png" /></p>
+<p>The betting lines seem to have stabilized over the last few days.  As we get closer and closer to <a href="http://en.wikipedia.org/wiki/Papal_conclave,_2013">papal conclave</a> and the members of the remaining <a href="http://www.vatican.va/news_services/press/documentazione/documents/cardinali_biografie/cardinali_aa_index_elettori_biografie_en.html">Cardinal electors</a> arrive in Rome,  the lines should show some movement. </p>
+<p>Script to generate the plot:  </p>
+<div class="highlight"><pre><span class="kn">import</span> <span class="nn">csv</span>
+<span class="kn">import</span> <span class="nn">datetime</span>
+<span class="kn">import</span> <span class="nn">urllib</span>
+<span class="kn">import</span> <span class="nn">pandas</span> <span class="kn">as</span> <span class="nn">pd</span>
+
+<span class="c"># read in .csv</span>
+<span class="n">url</span> <span class="o">=</span> <span class="s">&quot;https://raw.github.com/dataparadigms/popeTracker/master/odds.csv&quot;</span>
+<span class="n">webpage</span> <span class="o">=</span> <span class="n">urllib</span><span class="o">.</span><span class="n">urlopen</span><span class="p">(</span><span class="n">url</span><span class="p">)</span>
+
+<span class="c"># convert to pandas data frame</span>
+<span class="n">odds</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">read_csv</span><span class="p">(</span><span class="n">webpage</span><span class="p">,</span> 
+  <span class="n">header</span> <span class="o">=</span> <span class="bp">None</span><span class="p">,</span> 
+  <span class="n">names</span><span class="o">=</span><span class="p">[</span><span class="s">&#39;date&#39;</span><span class="p">,</span><span class="s">&#39;position&#39;</span><span class="p">,</span><span class="s">&#39;name&#39;</span><span class="p">,</span> <span class="s">&#39;country&#39;</span><span class="p">,</span> <span class="s">&#39;odds&#39;</span><span class="p">,</span><span class="s">&#39;probability&#39;</span><span class="p">])</span>
+
+<span class="c"># convert the datetime to an actual date time</span>
+<span class="n">odds</span><span class="p">[</span><span class="s">&#39;date&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">odds</span><span class="p">[</span><span class="s">&#39;date&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">map</span><span class="p">(</span>
+  <span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="n">datetime</span><span class="o">.</span><span class="n">datetime</span><span class="o">.</span><span class="n">strptime</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="n">x</span><span class="p">),</span> <span class="s">&#39;%Y%m</span><span class="si">%d</span><span class="s">%H%M%S&#39;</span><span class="p">))</span>
+
+<span class="c"># drop dups</span>
+<span class="n">odds</span> <span class="o">=</span> <span class="n">odds</span><span class="o">.</span><span class="n">drop_duplicates</span><span class="p">(</span><span class="n">cols</span><span class="o">=</span><span class="p">[</span><span class="s">&#39;date&#39;</span><span class="p">,</span><span class="s">&#39;name&#39;</span><span class="p">],</span> <span class="n">take_last</span><span class="o">=</span><span class="bp">True</span><span class="p">)</span>
+
+<span class="c"># pivot to get one column per name</span>
+<span class="n">data</span> <span class="o">=</span> <span class="n">odds</span><span class="o">.</span><span class="n">pivot</span><span class="p">(</span><span class="n">index</span> <span class="o">=</span> <span class="s">&#39;date&#39;</span><span class="p">,</span>
+        <span class="n">columns</span> <span class="o">=</span> <span class="s">&#39;name&#39;</span><span class="p">,</span>
+        <span class="n">values</span> <span class="o">=</span> <span class="s">&#39;probability&#39;</span><span class="p">)</span>
+
+<span class="c"># keep those with a &gt; .1 chance of winning</span>
+<span class="n">leaders</span> <span class="o">=</span> <span class="n">data</span><span class="p">[</span><span class="n">data</span> <span class="o">&gt;</span> <span class="o">.</span><span class="mi">1</span><span class="p">]</span>
+<span class="n">leaders</span> <span class="o">=</span> <span class="n">leaders</span><span class="o">.</span><span class="n">dropna</span><span class="p">(</span><span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">how</span><span class="o">=</span><span class="s">&#39;all&#39;</span><span class="p">)</span>
+
+<span class="c"># make the plot</span>
+<span class="n">leaders</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">title</span><span class="o">=</span><span class="s">&#39;Probability of Being the Next Pope&#39;</span><span class="p">,</span> 
+  <span class="n">grid</span><span class="o">=</span><span class="bp">True</span><span class="p">,</span>
+  <span class="n">figsize</span><span class="o">=</span><span class="p">(</span><span class="mi">10</span><span class="p">,</span><span class="mi">10</span><span class="p">));</span>
+</pre></div>
+
+
+<p>Full code, data set, and iPython notebook is available on <a href="https://github.com/dataparadigms/popeTracker">github</a>. </p>
+<p>Thoughts?</p>
+  </div><!-- /.entry-content -->
+   <footer class="post-info text-muted">
+    Posted on <abbr class="published" title="2013-02-24T00:00:00">
+      2013.02.24
+    </abbr>
+    <address class="vcard author">
+      by <a class="url fn" href="../../../../author/me.html">Me</a>
+    </address> in <a href="../../../../category/thoughts.html">Thoughts</a> Tagged <a href="../../../../tag/python-pandas.html">python pandas </a>  </footer><!-- /.post-info -->
+</section>
+            <footer id="contentinfo" class="footer">
+                    <nav class="pull-right bottom-nav">
+                        <a href="/None">RSS</a>
+                    </nav>
+                    <address id="about" class="vcard body">
+                    &copy; <a href="../../../..">DataParadigms - data data data!</a> Proudly powered by <a href="http://getpelican.com/">Pelican</a>
+                    </address><!-- /#about -->
+            </footer><!-- /#contentinfo -->
+        </div><!-- container -->
+    </body>
+</html>

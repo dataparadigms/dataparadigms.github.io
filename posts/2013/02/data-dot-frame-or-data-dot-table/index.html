@@ -1,0 +1,191 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <title>data.table or data.frame? - DataParadigms - data data data!</title>
+        <meta charset="utf-8" />
+        <link href="//netdna.bootstrapcdn.com/bootstrap/3.0.0/css/bootstrap.min.css" rel="stylesheet" />
+        <link href="../../../../theme/static/css/style.css" rel="stylesheet" />
+        <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+    </head>
+
+    <body id="index" class="archive">
+        <div class="container">
+            <div class="header">
+                <ul class="nav nav-pills pull-right">
+                    <li class=""><a href="../../../..">Home</a></li>
+                    <li><a href="../../../../pages/about-me.html">About Me</a></li>
+                    <!-- <li><a href="../../../../archives.html">Archives</a></li> -->
+                </ul>
+                <h3 class="text-muted"><a href="../../../..">DataParadigms - data data data!</a></h3>
+             </div>
+<section id="content" class="article content">
+  <header>
+    <h2 class="entry-title">
+      <a href="../../../../posts/2013/02/data-dot-frame-or-data-dot-table/" rel="bookmark"
+         title="Permalink to data.table or data.frame?">data.table or data.frame?</a></h2>
+ 
+  </header>
+  
+     
+  <div class="entry-content">
+    <p>I spent a portion of today trying to convince a colleague that there are times when the <code>data.table</code> package is faster than traditional methods in R.  It took a few of the tests below to prove the point.  </p>
+<p>Generate a data.frame of <code>characters</code> and numbers for easy plotting.   </p>
+<div class="highlight"><pre>df <span class="o">&lt;-</span> data.frame<span class="p">(</span>letters <span class="o">=</span> as.character<span class="p">(</span>sample<span class="p">(</span>letters<span class="p">[</span><span class="m">1</span><span class="o">:</span><span class="m">10</span><span class="p">],</span> <span class="m">1e+08</span><span class="p">,</span> replace <span class="o">=</span> <span class="kc">TRUE</span><span class="p">)),</span> numbers <span class="o">=</span> sample<span class="p">(</span><span class="m">1</span><span class="o">:</span><span class="m">100</span><span class="p">,</span> <span class="m">1e+08</span><span class="p">,</span> replace <span class="o">=</span> <span class="kc">TRUE</span><span class="p">))</span>
+head<span class="p">(</span>df<span class="p">)</span>
+
+<span class="c1">##   letters numbers</span>
+<span class="c1">## 1       f      69</span>
+<span class="c1">## 2       j      65</span>
+<span class="c1">## 3       h      29</span>
+<span class="c1">## 4       c      69</span>
+<span class="c1">## 5       j      12</span>
+<span class="c1">## 6       e      65</span>
+</pre></div>
+
+
+<p>Aggregate using the base R function <code>aggregate</code>.</p>
+<div class="highlight"><pre>start <span class="o">&lt;-</span> proc.time<span class="p">()</span>
+aggregate<span class="p">(</span>numbers <span class="o">~</span> letters<span class="p">,</span> data <span class="o">=</span> df<span class="p">,</span> FUN <span class="o">=</span> sum<span class="p">)</span>
+
+<span class="c1">##    letters   numbers</span>
+<span class="c1">## 1        a 504884636</span>
+<span class="c1">## 2        b 504587923</span>
+<span class="c1">## 3        c 505357057</span>
+<span class="c1">## 4        d 505106809</span>
+<span class="c1">## 5        e 504788174</span>
+<span class="c1">## 6        f 505219078</span>
+<span class="c1">## 7        g 504796095</span>
+<span class="c1">## 8        h 504693166</span>
+<span class="c1">## 9        i 505079861</span>
+<span class="c1">## 10       j 505044118</span>
+
+aggregate_time <span class="o">&lt;-</span> proc.time<span class="p">()</span> <span class="o">-</span> start
+aggregate_time
+
+<span class="c1">##    user  system elapsed </span>
+<span class="c1">##  120.13   30.51  261.79</span>
+</pre></div>
+
+
+<p>Aggregate using <code>ddply</code> from the package <code>plyr</code>.</p>
+<div class="highlight"><pre>require<span class="p">(</span><span class="s">&quot;plyr&quot;</span><span class="p">)</span>
+
+<span class="c1">## Loading required package: plyr</span>
+
+start <span class="o">&lt;-</span> proc.time<span class="p">()</span>
+ddply<span class="p">(</span>df<span class="p">,</span> .<span class="p">(</span>letters<span class="p">),</span> summarize<span class="p">,</span> sums <span class="o">=</span> sum<span class="p">(</span>numbers<span class="p">))</span>
+
+<span class="c1">##    letters      sums</span>
+<span class="c1">## 1        a 504884636</span>
+<span class="c1">## 2        b 504587923</span>
+<span class="c1">## 3        c 505357057</span>
+<span class="c1">## 4        d 505106809</span>
+<span class="c1">## 5        e 504788174</span>
+<span class="c1">## 6        f 505219078</span>
+<span class="c1">## 7        g 504796095</span>
+<span class="c1">## 8        h 504693166</span>
+<span class="c1">## 9        i 505079861</span>
+<span class="c1">## 10       j 505044118</span>
+
+ddply_time <span class="o">&lt;-</span> proc.time<span class="p">()</span> <span class="o">-</span> start
+ddply_time
+
+<span class="c1">##    user  system elapsed </span>
+<span class="c1">##   22.04   27.38  192.99</span>
+</pre></div>
+
+
+<p>Aggregate using the <code>data.table</code> pacakge.</p>
+<div class="highlight"><pre>require<span class="p">(</span><span class="s">&quot;data.table&quot;</span><span class="p">)</span>
+
+<span class="c1">## Loading required package: data.table</span>
+
+start <span class="o">&lt;-</span> proc.time<span class="p">()</span>
+dt <span class="o">&lt;-</span> data.table<span class="p">(</span>df<span class="p">,</span> key <span class="o">=</span> <span class="s">&quot;letters&quot;</span><span class="p">)</span>
+dt<span class="p">[,</span> list<span class="p">(</span>sums <span class="o">=</span> sum<span class="p">(</span>numbers<span class="p">)),</span> by <span class="o">=</span> c<span class="p">(</span><span class="s">&quot;letters&quot;</span><span class="p">)]</span>
+
+<span class="c1">##     letters      sums</span>
+<span class="c1">##  1:       a 504884636</span>
+<span class="c1">##  2:       b 504587923</span>
+<span class="c1">##  3:       c 505357057</span>
+<span class="c1">##  4:       d 505106809</span>
+<span class="c1">##  5:       e 504788174</span>
+<span class="c1">##  6:       f 505219078</span>
+<span class="c1">##  7:       g 504796095</span>
+<span class="c1">##  8:       h 504693166</span>
+<span class="c1">##  9:       i 505079861</span>
+<span class="c1">## 10:       j 505044118</span>
+
+dt_time <span class="o">&lt;-</span> proc.time<span class="p">()</span> <span class="o">-</span> start
+dt_time
+
+<span class="c1">##    user  system elapsed </span>
+<span class="c1">##   7.102   7.017  55.957</span>
+</pre></div>
+
+
+<p>Comparison of the system times.  </p>
+<div class="highlight"><pre><span class="c1"># how many times slower is aggregate</span>
+aggregate_time<span class="p">[</span><span class="m">2</span><span class="p">]</span><span class="o">/</span>ddply_time<span class="p">[</span><span class="m">2</span><span class="p">]</span>
+
+<span class="c1">## sys.self </span>
+<span class="c1">##    1.114</span>
+
+aggregate_time<span class="p">[</span><span class="m">2</span><span class="p">]</span><span class="o">/</span>dt_time<span class="p">[</span><span class="m">2</span><span class="p">]</span>
+
+<span class="c1">## sys.self </span>
+<span class="c1">##    4.347</span>
+
+
+<span class="c1"># how many times slower is ddply</span>
+ddply_time<span class="p">[</span><span class="m">2</span><span class="p">]</span><span class="o">/</span>aggregate_time<span class="p">[</span><span class="m">2</span><span class="p">]</span>
+
+<span class="c1">## sys.self </span>
+<span class="c1">##   0.8975</span>
+
+ddply_time<span class="p">[</span><span class="m">2</span><span class="p">]</span><span class="o">/</span>dt_time<span class="p">[</span><span class="m">2</span><span class="p">]</span>
+
+<span class="c1">## sys.self </span>
+<span class="c1">##    3.902</span>
+
+
+<span class="c1"># how many times slower is data.table</span>
+dt_time<span class="p">[</span><span class="m">2</span><span class="p">]</span><span class="o">/</span>aggregate_time<span class="p">[</span><span class="m">2</span><span class="p">]</span>
+
+<span class="c1">## sys.self </span>
+<span class="c1">##     0.23</span>
+
+dt_time<span class="p">[</span><span class="m">2</span><span class="p">]</span><span class="o">/</span>ddply_time<span class="p">[</span><span class="m">2</span><span class="p">]</span>
+
+<span class="c1">## sys.self </span>
+<span class="c1">##   0.2563</span>
+</pre></div>
+
+
+<p>Based on 1 billion observations with the time to conver to a data.table included in the time elapsed.</p>
+<ol>
+<li><code>ddply</code> requires ~0.8975 more system time than <code>aggregate</code> </li>
+<li><code>aggregate</code> requires ~4.3474x more system time <code>data.table</code></li>
+<li><code>ddply</code> requires ~3.902x more system time than <code>data.table</code></li>
+</ol>
+<p><strong>Conclusion - data.table for the win. </strong></p>
+  </div><!-- /.entry-content -->
+   <footer class="post-info text-muted">
+    Posted on <abbr class="published" title="2013-02-03T00:00:00">
+      2013.02.03
+    </abbr>
+    <address class="vcard author">
+      by <a class="url fn" href="../../../../author/me.html">Me</a>
+    </address> in <a href="../../../../category/thoughts.html">Thoughts</a> Tagged <a href="../../../../tag/r.html">R </a>  </footer><!-- /.post-info -->
+</section>
+            <footer id="contentinfo" class="footer">
+                    <nav class="pull-right bottom-nav">
+                        <a href="/None">RSS</a>
+                    </nav>
+                    <address id="about" class="vcard body">
+                    &copy; <a href="../../../..">DataParadigms - data data data!</a> Proudly powered by <a href="http://getpelican.com/">Pelican</a>
+                    </address><!-- /#about -->
+            </footer><!-- /#contentinfo -->
+        </div><!-- container -->
+    </body>
+</html>

@@ -1,0 +1,223 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <title>rstats shiny app for tracking the next pope - DataParadigms</title>
+        <meta charset="utf-8" />
+        <link href="//netdna.bootstrapcdn.com/bootstrap/3.0.0/css/bootstrap.min.css" rel="stylesheet" />
+        <link href="../../../../theme/static/css/style.css" rel="stylesheet" />
+        <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+    </head>
+
+    <body id="index" class="archive">
+        <div class="container">
+            <div class="header">
+                <ul class="nav nav-pills pull-right">
+                    <li class=""><a href="../../../..">Home</a></li>
+                    <li><a href="../../../../pages/about-me.html">About Me</a></li>
+                    <!-- <li><a href="../../../../archives.html">Archives</a></li> -->
+                </ul>
+                <h3 class="text-muted"><a href="../../../..">DataParadigms</a></h3>
+             </div>
+<section id="content" class="article content">
+  <header>
+    <h2 class="entry-title">
+      <a href="../../../../posts/2013/02/rstats-shiny-app-for-tracking-the-next-pope/" rel="bookmark"
+         title="Permalink to rstats shiny app for tracking the next pope">rstats shiny app for tracking the next pope</a></h2>
+ 
+  </header>
+  
+     
+  <div class="entry-content">
+    <p><strong>Update:</strong>   Apparently this post needs a disclaimer.  </p>
+<ol>
+<li>The probabilities are based on odds published by an online bookmaker.  In no way, shape, or form is this an attestation nor algorithmic prediction of who the next Pope will be.   </li>
+<li>The house ALWAYS wins.  </li>
+<li>The odds are developed by the bookmaker as they see fit, this information is not released to the general public (you and I).  </li>
+<li>I do not claim to have any domain specific knowledge related to the Catholic Church.  </li>
+<li>Be skeptical of any use other than monitoring the changes in the odds over time.  </li>
+</ol>
+<p>After getting frustrated with having to run python over and over again (<a href="/posts/2013/02/pope-tracker/">see previous post</a>) to see the trends in the Papal odds,  I've put together a basic shiny app that allows for real time updates and interactivity. </p>
+<p>A live demo version is available at <a href="http://glimmer.rstudio.com/dataparadigm/pope/">http://glimmer.rstudio.com/dataparadigm/pope/</a>. </p>
+<p>Screenshot:  </p>
+<p><img alt="Screenshot of the App" src="/images/popeShiny.png" width="100%" /></p>
+<p>To run it locally using R choose one of the following.  </p>
+<div class="highlight"><pre>library<span class="p">(</span>shiny<span class="p">)</span>
+runGitHub<span class="p">(</span><span class="s">&quot;popeShiny&quot;</span><span class="p">,</span> <span class="s">&quot;dataparadigms&quot;</span><span class="p">)</span>
+</pre></div>
+
+
+<p>or </p>
+<div class="highlight"><pre>library<span class="p">(</span>shiny<span class="p">)</span>
+runUrl<span class="p">(</span><span class="s">&#39;https://github.com/dataparadigms/popeShiny/archive/master.tar.gz&#39;</span><span class="p">)</span>
+</pre></div>
+
+
+<p>Note:  Install <a href="http://ggplot2.org/">ggplot2</a>, <a href="https://github.com/hadley/lubridate">lubridate</a>, and <a href="http://www.rstudio.com/shiny/">shiny</a> before running in R.</p>
+<p>Kudos to the folks behind <a href="http://www.rstudio.com/">RStudio</a> for developing the <a href="http://www.rstudio.com/shiny/">Shiny package</a> as well as kindly offering up beta testing for Shiny Server.  </p>
+<p>Shiny needs two files:
+- <strong><code>server.R</code></strong> which is the the file that runs the actual code<br />
+- <strong><code>ui.R</code></strong> which controls what is presented back to the user  </p>
+<p><code>server.R</code></p>
+<div class="highlight"><pre>library<span class="p">(</span>shiny<span class="p">)</span>
+library<span class="p">(</span>lubridate<span class="p">)</span>
+library<span class="p">(</span>ggplot2<span class="p">)</span>
+library<span class="p">(</span>scales<span class="p">)</span>
+library<span class="p">(</span>RColorBrewer<span class="p">)</span>
+library<span class="p">(</span>RCurl<span class="p">)</span>
+
+loadData <span class="o">&lt;-</span> <span class="kr">function</span><span class="p">(){</span>
+  <span class="c1"># loads the most recent odds, on load and then when user chooses to. </span>
+  <span class="c1">#</span>
+  <span class="c1"># returns:</span>
+  <span class="c1">#   munged data.frame needed for the server</span>
+
+  <span class="c1"># pull file from the github repo</span>
+
+  githubCSV <span class="o">&lt;-</span> getURL<span class="p">(</span><span class="s">&quot;https://raw.github.com/dataparadigms/popeShiny/master/popeOdds_2013.csv&quot;</span><span class="p">)</span>
+
+
+  stream <span class="o">&lt;-</span> read.csv<span class="p">(</span>text <span class="o">=</span> githubCSV<span class="p">,</span>
+                   as.is <span class="o">=</span> <span class="kc">TRUE</span><span class="p">,</span>
+                   header <span class="o">=</span> <span class="kc">FALSE</span><span class="p">)</span>
+  colnames<span class="p">(</span>stream<span class="p">)</span> <span class="o">&lt;-</span> c<span class="p">(</span><span class="s">&quot;x&quot;</span><span class="p">,</span> <span class="s">&quot;title&quot;</span><span class="p">,</span> <span class="s">&quot;name&quot;</span><span class="p">,</span> <span class="s">&quot;country&quot;</span><span class="p">,</span> <span class="s">&quot;odds&quot;</span><span class="p">,</span> <span class="s">&quot;y&quot;</span><span class="p">)</span>
+
+  <span class="c1"># put together a new data frame</span>
+  condensed <span class="o">&lt;-</span> data.frame<span class="p">(</span>candidate <span class="o">=</span> paste<span class="p">(</span>stream<span class="o">$</span>title<span class="p">,</span> 
+                                            stream<span class="o">$</span>name<span class="p">,</span> 
+                                            paste<span class="p">(</span><span class="s">&quot;(&quot;</span><span class="p">,</span> stream<span class="o">$</span>country<span class="p">,</span> <span class="s">&quot;)&quot;</span><span class="p">,</span> sep<span class="o">=</span><span class="s">&quot;&quot;</span><span class="p">)),</span>
+                          x <span class="o">=</span> parse_date_time<span class="p">(</span>stream<span class="o">$</span>x<span class="p">,</span> <span class="s">&#39;%Y%m%d%H%M%S&#39;</span><span class="p">),</span> 
+                          y <span class="o">=</span> stream<span class="o">$</span>y<span class="p">)</span>
+
+  <span class="c1"># check for any duplicates</span>
+  condensed <span class="o">&lt;-</span> condensed<span class="p">[</span><span class="o">!</span>duplicated<span class="p">(</span>condensed<span class="p">),</span> <span class="p">]</span>
+
+  <span class="c1"># order</span>
+  condensed <span class="o">&lt;-</span> condensed<span class="p">[</span>with<span class="p">(</span>condensed<span class="p">,</span> order<span class="p">(</span>candidate<span class="p">,</span> x<span class="p">)),]</span>
+
+  <span class="c1"># rank for the max time</span>
+  ranked <span class="o">&lt;-</span> condensed<span class="p">[</span>as.double<span class="p">(</span>condensed<span class="o">$</span>x<span class="p">)</span> <span class="o">==</span> as.double<span class="p">(</span>max<span class="p">(</span>condensed<span class="o">$</span>x<span class="p">)),</span> <span class="p">]</span>
+  ranked<span class="o">$</span>rank <span class="o">&lt;-</span> rank<span class="p">(</span><span class="o">-</span>ranked<span class="o">$</span>y<span class="p">,</span> ties.method <span class="o">=</span> <span class="s">&quot;max&quot;</span><span class="p">)</span>
+  ranked <span class="o">&lt;-</span> ranked<span class="p">[</span>with<span class="p">(</span>ranked<span class="p">,</span> order<span class="p">(</span>rank<span class="p">)),]</span>
+  ranked <span class="o">&lt;-</span> ranked<span class="p">[</span>ranked<span class="o">$</span>rank <span class="o">&lt;=</span> <span class="m">15</span><span class="p">,</span> <span class="p">]</span>
+
+  <span class="c1"># on the day the conclave concludes,  should show convergence to Pope by elected and </span>
+  <span class="c1"># the decline on the odds for the front runners over time.</span>
+  <span class="kr">if</span> <span class="p">(</span>nrow<span class="p">(</span>ranked<span class="p">)</span> <span class="o">&lt;=</span> <span class="m">1</span><span class="p">)</span> <span class="p">{</span>
+
+    rankedInitial <span class="o">&lt;-</span> condensed<span class="p">[</span>as.double<span class="p">(</span>condensed<span class="o">$</span>x<span class="p">)</span> <span class="o">==</span> as.double<span class="p">(</span>min<span class="p">(</span>condensed<span class="o">$</span>x<span class="p">)),</span> <span class="p">]</span>
+    rankedInitial <span class="o">&lt;-</span> rankedInitial<span class="p">[</span><span class="o">!</span><span class="p">(</span>rankedInitial<span class="o">$</span>candidate <span class="o">%in%</span> unique<span class="p">(</span>ranked<span class="o">$</span>candidate<span class="p">)),</span> <span class="p">]</span>
+    rankedInitial<span class="o">$</span>rank <span class="o">&lt;-</span> rank<span class="p">(</span><span class="o">-</span>rankedInitial<span class="o">$</span>y<span class="p">,</span> ties.method <span class="o">=</span> <span class="s">&quot;max&quot;</span><span class="p">)</span>
+    rankedInitial<span class="o">$</span>rank <span class="o">&lt;-</span> rankedInitial<span class="o">$</span>rank <span class="o">+</span> <span class="m">1</span>
+    rankedInitial <span class="o">&lt;-</span> rankedInitial<span class="p">[</span>with<span class="p">(</span>rankedInitial<span class="p">,</span> order<span class="p">(</span>rank<span class="p">)),]</span>
+    rankedInitial <span class="o">&lt;-</span> rankedInitial<span class="p">[</span>rankedInitial<span class="o">$</span>rank <span class="o">&lt;=</span> <span class="m">15</span><span class="p">,</span> <span class="p">]</span>
+    ranked <span class="o">&lt;-</span> rbind<span class="p">(</span>ranked<span class="p">,</span> rankedInitial<span class="p">)</span>
+  <span class="p">}</span>
+
+  <span class="c1"># merge back</span>
+  condensed <span class="o">&lt;-</span> merge<span class="p">(</span>condensed<span class="p">,</span> ranked<span class="p">[,</span> c<span class="p">(</span><span class="m">1</span><span class="p">,</span><span class="m">4</span><span class="p">)],</span> by <span class="o">=</span> c<span class="p">(</span><span class="s">&quot;candidate&quot;</span><span class="p">))</span>
+  <span class="kr">return</span><span class="p">(</span>condensed<span class="p">)</span>
+<span class="p">}</span>
+
+setColors <span class="o">&lt;-</span> <span class="kr">function</span><span class="p">(</span>df<span class="p">){</span>
+  <span class="c1"># sets consistent colors for the plot based on the data</span>
+  <span class="c1">#</span>
+  <span class="c1"># args:</span>
+  <span class="c1">#   df: data.frame with a list of candidates and no more than 12 for</span>
+  <span class="c1">#       for unique color assignment</span>
+  <span class="c1">#</span>
+  <span class="c1"># returns:</span>
+  <span class="c1">#   vector of colors and corresponding name</span>
+
+  colors <span class="o">&lt;-</span> c<span class="p">(</span>brewer.pal<span class="p">(</span><span class="m">12</span><span class="p">,</span> <span class="s">&quot;Set3&quot;</span><span class="p">),</span> brewer.pal<span class="p">(</span><span class="m">10</span><span class="p">,</span> <span class="s">&quot;RdBu&quot;</span><span class="p">))</span>
+  names<span class="p">(</span>colors<span class="p">)</span> <span class="o">&lt;-</span> levels<span class="p">(</span>factor<span class="p">(</span>df<span class="o">$</span>candidate<span class="p">))</span>
+  <span class="kr">return</span><span class="p">(</span>colors<span class="p">)</span>
+<span class="p">}</span>
+
+
+<span class="c1"># sets up based on the data when the server was loaded</span>
+options <span class="o">&lt;-</span> loadData<span class="p">()</span>
+candidateColors <span class="o">&lt;-</span> setColors<span class="p">(</span>options<span class="p">)</span>
+
+<span class="c1"># needed for the shiny server to run</span>
+shinyServer<span class="p">(</span><span class="kr">function</span><span class="p">(</span>input<span class="p">,</span> output<span class="p">)</span> <span class="p">{</span>
+
+  <span class="c1"># reactive to the slide to pull the the top n ranks</span>
+  sliderValues <span class="o">&lt;-</span> reactive<span class="p">({</span>    
+    temp <span class="o">&lt;-</span> subset<span class="p">(</span>options<span class="p">,</span> rank <span class="o">&lt;=</span> input<span class="o">$</span>rank<span class="p">)</span>
+  <span class="p">})</span>
+
+  <span class="c1"># render plot to pass the ggplot back to the ui.R</span>
+  output<span class="o">$</span>ggplot <span class="o">&lt;-</span> renderPlot<span class="p">({</span>
+    <span class="c1"># set stable temp df so the max function doesn&#39;t force a function recall</span>
+    temp <span class="o">&lt;-</span> sliderValues<span class="p">()</span>
+
+    <span class="c1"># create the plot</span>
+    p <span class="o">&lt;-</span> ggplot<span class="p">(</span>temp<span class="p">,</span> aes<span class="p">(</span>x<span class="p">,</span> y<span class="p">))</span>
+
+    p <span class="o">&lt;-</span> p <span class="o">+</span> geom_line<span class="p">(</span>aes<span class="p">(</span>colour <span class="o">=</span> candidate<span class="p">),</span> size <span class="o">=</span> <span class="m">1.25</span><span class="p">)</span> <span class="o">+</span>
+          theme_bw<span class="p">()</span> <span class="o">+</span>
+          scale_y_continuous<span class="p">(</span>breaks <span class="o">=</span> seq<span class="p">(</span><span class="m">0</span><span class="p">,</span><span class="m">1</span><span class="p">,</span><span class="m">.1</span><span class="p">))</span> <span class="o">+</span>
+          scale_color_manual<span class="p">(</span>name <span class="o">=</span> <span class="s">&quot;candidate&quot;</span><span class="p">,</span> values <span class="o">=</span> candidateColors<span class="p">)</span> <span class="o">+</span> 
+          labs<span class="p">(</span>title <span class="o">=</span> <span class="s">&#39;Probability of Being the Next Pope&#39;</span><span class="p">,</span>
+               x <span class="o">=</span> <span class="s">&#39;&#39;</span><span class="p">,</span>
+               y <span class="o">=</span> <span class="s">&#39;&#39;</span><span class="p">)</span> <span class="o">+</span>
+          theme<span class="p">(</span>legend.title <span class="o">=</span> element_blank<span class="p">(),</span>
+                legend.position <span class="o">=</span> <span class="s">&#39;right&#39;</span><span class="p">,</span>
+                legend.key <span class="o">=</span> element_blank<span class="p">(),</span>
+                plot.title <span class="o">=</span> element_text<span class="p">(</span>face <span class="o">=</span> <span class="s">&#39;bold&#39;</span><span class="p">))</span>
+    plot<span class="p">(</span>p<span class="p">)</span>
+  <span class="p">})</span>
+
+<span class="p">})</span>
+</pre></div>
+
+
+<p><code>ui.R</code>  </p>
+<div class="highlight"><pre>library<span class="p">(</span>shiny<span class="p">)</span>
+
+<span class="c1"># define the UI set up, bootstrapPage lets the span for the graph be 12 instead</span>
+<span class="c1"># of the default 8 with pageWithSidebar</span>
+shinyUI<span class="p">(</span>bootstrapPage<span class="p">(</span>
+
+  headerPanel<span class="p">(</span><span class="s">&quot;Next Pope&quot;</span><span class="p">),</span>
+
+  mainPanel<span class="p">(</span>
+
+    div<span class="p">(</span>class<span class="o">=</span><span class="s">&quot;span12&quot;</span><span class="p">,</span>
+      plotOutput<span class="p">(</span><span class="s">&quot;ggplot&quot;</span><span class="p">)</span>
+    <span class="p">),</span>
+
+    div<span class="p">(</span>class<span class="o">=</span><span class="s">&quot;span2&quot;</span><span class="p">,</span>
+      sliderInput<span class="p">(</span><span class="s">&quot;rank&quot;</span><span class="p">,</span> 
+      <span class="s">&quot;Top N Candidates:&quot;</span><span class="p">,</span>
+      min <span class="o">=</span> <span class="m">1</span><span class="p">,</span>
+      max <span class="o">=</span> <span class="m">15</span><span class="p">,</span>
+      value <span class="o">=</span> <span class="m">1</span><span class="p">)</span>
+    <span class="p">)</span>
+  <span class="p">)</span>
+<span class="p">))</span>
+</pre></div>
+
+
+<p>Full code with comments is available on <a href="https://github.com/dataparadigms/popeShiny">github</a>.</p>
+<p><strong>Updated March 5, 2013 :</strong> Added disclaimer and reference to additional R packages.</p>
+  </div><!-- /.entry-content -->
+   <footer class="post-info text-muted">
+    Posted on <abbr class="published" title="2013-02-03T00:00:00">
+      2013.02.03
+    </abbr>
+    <address class="vcard author">
+      by <a class="url fn" href="../../../../author/me.html">Me</a>
+    </address> in <a href="../../../../category/thoughts.html">Thoughts</a> Tagged <a href="../../../../tag/python.html">python </a><a href="../../../../tag/pandas.html">pandas </a>  </footer><!-- /.post-info -->
+</section>
+            <footer id="contentinfo" class="footer">
+                    <nav class="pull-right bottom-nav">
+                        <a href="/None">RSS</a>
+                    </nav>
+                    <address id="about" class="vcard body">
+                    &copy; <a href="../../../..">DataParadigms</a> Proudly powered by <a href="http://getpelican.com/">Pelican</a>
+                    </address><!-- /#about -->
+            </footer><!-- /#contentinfo -->
+        </div><!-- container -->
+    </body>
+</html>

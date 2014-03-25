@@ -1,0 +1,145 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <title>literacy rates using semantics and R - DataParadigms - data data data!</title>
+        <meta charset="utf-8" />
+        <link href="//netdna.bootstrapcdn.com/bootstrap/3.0.0/css/bootstrap.min.css" rel="stylesheet" />
+        <link href="../../../../theme/static/css/style.css" rel="stylesheet" />
+        <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+    </head>
+
+    <body id="index" class="archive">
+        <div class="container">
+            <div class="header">
+                <ul class="nav nav-pills pull-right">
+                    <li class=""><a href="../../../..">Home</a></li>
+                    <li><a href="../../../../pages/about-me.html">About Me</a></li>
+                    <!-- <li><a href="../../../../archives.html">Archives</a></li> -->
+                </ul>
+                <h3 class="text-muted"><a href="../../../..">DataParadigms - data data data!</a></h3>
+             </div>
+<section id="content" class="article content">
+  <header>
+    <h2 class="entry-title">
+      <a href="../../../../posts/2013/06/literacy-rates/" rel="bookmark"
+         title="Permalink to literacy rates using semantics and R">literacy rates using semantics and R</a></h2>
+ 
+  </header>
+  
+     
+  <div class="entry-content">
+    <p>Somehow I stumbled into the world of linked open data trying to pull information easily off of a wikipedia page without having to write a customer scrapper.   Enter in <a href="http://www.dbpedia">dbpedia</a>, semantic technologies and some wonderful R packages take care of the back-end coding. </p>
+<p>The <a href="http://dws.informatik.uni-mannheim.de/en/home/">Research Group Data and Web Science at the University of Mannheim</a> has exposed a SPARQL endpoint for the <a href="https://www.cia.gov/library/publications/the-world-factbook/">CIA Factbook</a></p>
+<p>Using this and the following query,  I was able to quickly pull the gender specific literacy rates:</p>
+<div class="highlight"><pre><span class="k">PREFIX</span> <span class="n">db</span><span class="p">:</span> <span class="o">&lt;</span><span class="n">http</span><span class="p">:</span><span class="o">//</span><span class="n">wifo5</span><span class="o">-</span><span class="mi">04</span><span class="p">.</span><span class="n">informatik</span><span class="p">.</span><span class="n">uni</span><span class="o">-</span><span class="n">mannheim</span><span class="p">.</span><span class="n">de</span><span class="o">/</span><span class="n">factbook</span><span class="o">/</span><span class="n">resource</span><span class="o">/&gt;</span>
+<span class="k">PREFIX</span> <span class="n">rdfs</span><span class="p">:</span> <span class="o">&lt;</span><span class="n">http</span><span class="p">:</span><span class="o">//</span><span class="n">www</span><span class="p">.</span><span class="n">w3</span><span class="p">.</span><span class="n">org</span><span class="o">/</span><span class="mi">2000</span><span class="o">/</span><span class="mi">01</span><span class="o">/</span><span class="n">rdf</span><span class="o">-</span><span class="k">schema</span><span class="o">#&gt;</span>
+<span class="k">PREFIX</span> <span class="n">foaf</span><span class="p">:</span> <span class="o">&lt;</span><span class="n">http</span><span class="p">:</span><span class="o">//</span><span class="n">xmlns</span><span class="p">.</span><span class="n">com</span><span class="o">/</span><span class="n">foaf</span><span class="o">/</span><span class="mi">0</span><span class="p">.</span><span class="mi">1</span><span class="o">/&gt;</span>
+<span class="k">PREFIX</span> <span class="n">d2r</span><span class="p">:</span> <span class="o">&lt;</span><span class="n">http</span><span class="p">:</span><span class="o">//</span><span class="n">sites</span><span class="p">.</span><span class="n">wiwiss</span><span class="p">.</span><span class="n">fu</span><span class="o">-</span><span class="n">berlin</span><span class="p">.</span><span class="n">de</span><span class="o">/</span><span class="n">suhl</span><span class="o">/</span><span class="n">bizer</span><span class="o">/</span><span class="n">d2r</span><span class="o">-</span><span class="n">server</span><span class="o">/</span><span class="n">config</span><span class="p">.</span><span class="n">rdf</span><span class="o">#&gt;</span>
+<span class="k">PREFIX</span> <span class="n">owl</span><span class="p">:</span> <span class="o">&lt;</span><span class="n">http</span><span class="p">:</span><span class="o">//</span><span class="n">www</span><span class="p">.</span><span class="n">w3</span><span class="p">.</span><span class="n">org</span><span class="o">/</span><span class="mi">2002</span><span class="o">/</span><span class="mi">07</span><span class="o">/</span><span class="n">owl</span><span class="o">#&gt;</span>
+<span class="k">PREFIX</span> <span class="k">map</span><span class="p">:</span> <span class="o">&lt;</span><span class="n">file</span><span class="p">:</span><span class="o">/</span><span class="n">var</span><span class="o">/</span><span class="n">www</span><span class="o">/</span><span class="n">wbsg</span><span class="p">.</span><span class="n">de</span><span class="o">/</span><span class="n">factbook</span><span class="o">/</span><span class="n">factbook</span><span class="p">.</span><span class="n">n3</span><span class="o">#&gt;</span>
+<span class="k">PREFIX</span> <span class="n">xsd</span><span class="p">:</span> <span class="o">&lt;</span><span class="n">http</span><span class="p">:</span><span class="o">//</span><span class="n">www</span><span class="p">.</span><span class="n">w3</span><span class="p">.</span><span class="n">org</span><span class="o">/</span><span class="mi">2001</span><span class="o">/</span><span class="n">XMLSchema</span><span class="o">#&gt;</span>
+<span class="k">PREFIX</span> <span class="n">factbook</span><span class="p">:</span> <span class="o">&lt;</span><span class="n">http</span><span class="p">:</span><span class="o">//</span><span class="n">wifo5</span><span class="o">-</span><span class="mi">04</span><span class="p">.</span><span class="n">informatik</span><span class="p">.</span><span class="n">uni</span><span class="o">-</span><span class="n">mannheim</span><span class="p">.</span><span class="n">de</span><span class="o">/</span><span class="n">factbook</span><span class="o">/</span><span class="n">ns</span><span class="o">#&gt;</span>
+<span class="k">PREFIX</span> <span class="n">rdf</span><span class="p">:</span> <span class="o">&lt;</span><span class="n">http</span><span class="p">:</span><span class="o">//</span><span class="n">www</span><span class="p">.</span><span class="n">w3</span><span class="p">.</span><span class="n">org</span><span class="o">/</span><span class="mi">1999</span><span class="o">/</span><span class="mi">02</span><span class="o">/</span><span class="mi">22</span><span class="o">-</span><span class="n">rdf</span><span class="o">-</span><span class="n">syntax</span><span class="o">-</span><span class="n">ns</span><span class="o">#&gt;</span>
+
+<span class="k">SELECT</span> 
+  <span class="k">DISTINCT</span> <span class="o">?</span><span class="n">label</span> 
+    <span class="o">?</span><span class="n">litMale</span> 
+    <span class="o">?</span><span class="n">litFemale</span> 
+    <span class="p">((</span><span class="o">?</span><span class="n">litMale</span> <span class="o">-</span> <span class="o">?</span><span class="n">litFemale</span><span class="p">)</span> <span class="k">AS</span> <span class="o">?</span><span class="n">litDiff</span><span class="p">)</span>
+  <span class="k">WHERE</span> <span class="err">{</span> 
+    <span class="o">?</span><span class="n">resource</span> <span class="n">factbook</span><span class="p">:</span><span class="n">literacy_female</span> <span class="o">?</span><span class="n">litFemale</span><span class="p">;</span>
+      <span class="n">factbook</span><span class="p">:</span><span class="n">literacy_male</span> <span class="o">?</span><span class="n">litMale</span><span class="p">;</span> 
+      <span class="n">rdfs</span><span class="p">:</span><span class="n">label</span> <span class="o">?</span><span class="n">label</span> <span class="p">.</span>
+  <span class="err">}</span>
+</pre></div>
+
+
+<p>What's the next logical step after getting data back in tabular form?  </p>
+<p><strong>Visualization using <a href="http://ggplot2.org/">ggplot2</a>!</strong>
+    :::R
+    library(SPARQL)
+    library(ggplot2)</p>
+<div class="highlight"><pre><span class="c1"># set up namespace prefixes</span>
+pre <span class="o">&lt;-</span> <span class="s">&quot;</span>
+<span class="s">PREFIX db: &lt;http://wifo5-04.informatik.uni-mannheim.de/factbook/resource/&gt;</span>
+<span class="s">PREFIX rdfs: &lt;http://www.w3.org/2000/01/rdf-schema#&gt;</span>
+<span class="s">PREFIX foaf: &lt;http://xmlns.com/foaf/0.1/&gt;</span>
+<span class="s">PREFIX d2r: &lt;http://sites.wiwiss.fu-berlin.de/suhl/bizer/d2r-server/config.rdf#&gt;</span>
+<span class="s">PREFIX owl: &lt;http://www.w3.org/2002/07/owl#&gt;</span>
+<span class="s">PREFIX map: &lt;file:/var/www/wbsg.de/factbook/factbook.n3#&gt;</span>
+<span class="s">PREFIX xsd: &lt;http://www.w3.org/2001/XMLSchema#&gt;</span>
+<span class="s">PREFIX factbook: &lt;http://wifo5-04.informatik.uni-mannheim.de/factbook/ns#&gt;</span>
+<span class="s">PREFIX rdf: &lt;http://www.w3.org/1999/02/22-rdf-syntax-ns#&gt;&quot;</span>
+
+<span class="c1"># actual query</span>
+SPARQL <span class="o">&lt;-</span> <span class="s">&#39;</span>
+<span class="s">SELECT </span>
+<span class="s">  DISTINCT ?label </span>
+<span class="s">    ?litMale </span>
+<span class="s">    ?litFemale </span>
+<span class="s">    ((?litMale - ?litFemale) AS ?litDiff)</span>
+<span class="s">  WHERE { </span>
+<span class="s">    ?resource factbook:literacy_female ?litFemale;</span>
+<span class="s">      factbook:literacy_male ?litMale; </span>
+<span class="s">      rdfs:label ?label . }&#39;</span>
+
+<span class="c1"># put them together</span>
+query <span class="o">&lt;-</span> paste<span class="p">(</span>pre<span class="p">,</span> SPARQL<span class="p">)</span>
+
+<span class="c1"># grab the data</span>
+data <span class="o">&lt;-</span> SPARQL<span class="p">(</span>url <span class="o">=</span> <span class="s">&quot;http://wifo5-04.informatik.uni-mannheim.de/factbook/sparql&quot;</span><span class="p">,</span>
+         query <span class="o">=</span> query<span class="p">)</span>
+
+<span class="c1"># convert from </span>
+data <span class="o">&lt;-</span> as.data.frame<span class="p">(</span>data<span class="o">$</span>results<span class="p">)</span>
+
+<span class="c1"># output the data</span>
+<span class="c1">#save(data, file = &quot;factbook.RData&quot;)</span>
+load<span class="p">(</span><span class="s">&quot;factbook.RData&quot;</span><span class="p">)</span>
+
+<span class="c1"># make plot structure</span>
+p <span class="o">&lt;-</span> ggplot<span class="p">(</span>data<span class="p">,</span> aes<span class="p">(</span>litFemale<span class="p">,</span> litMale<span class="p">,</span> 
+                      label <span class="o">=</span> label<span class="p">,</span> 
+                      color <span class="o">=</span> litDiff<span class="p">,</span> 
+                      size <span class="o">=</span> abs<span class="p">(</span>litDiff<span class="p">)))</span>
+
+<span class="c1"># add in the geoms</span>
+p <span class="o">&lt;-</span> p <span class="o">+</span> theme_bw<span class="p">()</span> <span class="o">+</span> 
+      geom_text<span class="p">(</span>position <span class="o">=</span> <span class="s">&quot;jitter&quot;</span><span class="p">)</span> <span class="o">+</span> 
+      scale_color_gradient<span class="p">(</span>low <span class="o">=</span> <span class="s">&quot;Blue&quot;</span><span class="p">,</span> high <span class="o">=</span> <span class="s">&quot;Red&quot;</span><span class="p">,</span> label <span class="o">=</span> <span class="s">&quot;&quot;</span><span class="p">)</span> <span class="o">+</span>
+      scale_x_continuous<span class="p">(</span>breaks <span class="o">=</span> seq<span class="p">(</span><span class="m">0</span><span class="p">,</span><span class="m">100</span><span class="p">,</span><span class="m">10</span><span class="p">),</span> 
+                         limits <span class="o">=</span> c<span class="p">(</span><span class="m">0</span><span class="p">,</span><span class="m">100</span><span class="p">))</span> <span class="o">+</span> 
+      scale_y_continuous<span class="p">(</span>breaks <span class="o">=</span> seq<span class="p">(</span><span class="m">0</span><span class="p">,</span><span class="m">100</span><span class="p">,</span><span class="m">10</span><span class="p">),</span>
+                         limites <span class="o">=</span> c<span class="p">(</span><span class="m">0</span><span class="p">,</span><span class="m">100</span><span class="p">))</span> <span class="o">+</span>
+      labs<span class="p">(</span>title <span class="o">=</span> <span class="s">&quot;Gender Literacy Rates&quot;</span><span class="p">,</span>
+           x <span class="o">=</span> <span class="s">&quot;Female Literacy Rate&quot;</span><span class="p">,</span>
+           y <span class="o">=</span> <span class="s">&quot;Male Literacy Rate&quot;</span><span class="p">)</span> <span class="o">+</span>
+      theme<span class="p">(</span>legend.position <span class="o">=</span> <span class="s">&quot;none&quot;</span><span class="p">)</span>
+
+p
+</pre></div>
+
+
+<p><a href="/images/literacy_rates.png"><img alt="Literacy Rates" src="/images/literacy_rates.png" width="100%" /></a></p>
+<p>Female literacy rates are on the x-axis,  male literacy rates on the y-axis, size of the country name represents the distance between the gender rates and the color of the country name is based on the relative "strength" of the gender differences. </p>
+<p>Full code is available in a github repo: <a href="https://github.com/dataparadigms/SemanticR">dataparadigms - SemanticR</a>. </p>
+  </div><!-- /.entry-content -->
+   <footer class="post-info text-muted">
+    Posted on <abbr class="published" title="2013-06-20T00:00:00">
+      2013.06.20
+    </abbr>
+    <address class="vcard author">
+      by <a class="url fn" href="../../../../author/me.html">Me</a>
+    </address> in <a href="../../../../category/thoughts.html">Thoughts</a> Tagged <a href="../../../../tag/semantics.html">semantics </a><a href="../../../../tag/r.html">R </a>  </footer><!-- /.post-info -->
+</section>
+            <footer id="contentinfo" class="footer">
+                    <nav class="pull-right bottom-nav">
+                        <a href="/None">RSS</a>
+                    </nav>
+                    <address id="about" class="vcard body">
+                    &copy; <a href="../../../..">DataParadigms - data data data!</a> Proudly powered by <a href="http://getpelican.com/">Pelican</a>
+                    </address><!-- /#about -->
+            </footer><!-- /#contentinfo -->
+        </div><!-- container -->
+    </body>
+</html>
